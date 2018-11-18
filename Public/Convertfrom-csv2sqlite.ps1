@@ -14,7 +14,14 @@
  table name in a parameter, otherwise the file name is used as the table name (the default table
  name does not include the file suffix)
 
- An error is also thrown if the existing table does not have fields matching the CSV file headings
+ An error is also thrown if the existing table does not have fields matching the CSV file headings.
+
+ In all honesty though, this is slow. Very very slow. You'd be better off importing via the sqlite terminal 
+ sqlite3 e.g.:
+ sqlite3 database.sqlite
+ .mode csv
+ .import csvfile.csv tablename
+ .exit
 
 
 .PARAMETER CsvFile
