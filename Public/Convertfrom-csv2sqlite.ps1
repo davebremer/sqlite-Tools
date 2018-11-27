@@ -66,6 +66,7 @@
  Date: 2018-11-12
 
  Updates:
+    2018-11-27 Added check for table existing in an existing database
 
  TODO
    1) Try/Catch around database actions (create, insert)
@@ -106,7 +107,6 @@ param(
 
 BEGIN{
     
-    $dbExists = (Test-Path $Database -PathType Leaf)
     Write-Verbose ("Database file: `"{0}`" - Exists? {1}" -f $Database,$dbExists)
     Write-Verbose ("CSV file: `"{0}`"" -f $CsvFile)
     Write-Verbose ("Table: `"{0}`"" -f $Tablename)
@@ -115,12 +115,19 @@ BEGIN{
     $values = @()
     $datatable = $null
     $conn = New-SQLiteConnection -DataSource $Database
+    $dbExists = (Test-Path $Database -PathType Leaf)
+
+    # See if the table exists in the database. If its not there it'll return null
+    $query = ("SELECT * FROM sqlite_master where tbl_name LIKE `'{0}`'" -f $TableName)
+    $table = Invoke-SqliteQuery -SQLiteConnection $conn -Query $query
 
     $recordcount = 0
+
 }
 
 PROCESS{
-    if (! $dbExists ) { #create database
+    if ( ! $dbExists -or ! $table ) { #create database
+
         # OK this is a kludge. Stripping quotes which sometimes surround text in a CSV.
         # I don't like this though. What if there's a quote in the text?
         $headings = (Get-Content $CsvFile -first 1).Replace("`"","")
