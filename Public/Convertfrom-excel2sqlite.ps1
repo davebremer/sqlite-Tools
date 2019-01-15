@@ -72,32 +72,29 @@ param(
         Mandatory = $FALSE,
         HelpMessage = 'Table name'
     )]
-    [String]$TableName 
+    [String]$TableName = $SheetName
   ) 
 
-BEGIN{
-    
+BEGIN{    
     Write-Verbose ("Database file: `"{0}`" - Exists? {1}" -f $Database,$dbExists)
     Write-Verbose ("Excel file: `"{0}`"" -f $ExcelFile)
     Write-Verbose ("Sheet Name: `"{0}`"" -f $SheetName)
     Write-Verbose ("Table: `"{0}`"" -f $Tablename)
-    
-
-    write-verbose "BEFORE"
-    
+   
+    write-verbose "create object" 
     $Excel = New-Object -ComObject Excel.Application
     
-    write-verbose "AFTER"
+    write-verbose ("open workbook `"{0}`"" -f $ExcelFile)
     $Workbook = $Excel.Workbooks.Open($excelfile)
 
+    Write-Verbose ("Opening sheet `"{0}`"" -f $SheetName)
     $theSheet = $workbook.worksheets.item($SheetName)    
 
     $maxcol = ($theSheet.UsedRange.Columns).count
     $maxrow = ($theSheet.UsedRange.rows).count
     Write-Verbose ("Columns: {0}" -f $maxcol)
-    Write-Verbose ("Rows: {0}" -f $maxrow)
+    Write-Verbose ("Rows: {0}" -f ($maxrow-1)) #minus the header row
     
-
     $values = @()
     $datatable = $null
     $conn = New-SQLiteConnection -DataSource $Database
@@ -108,19 +105,25 @@ BEGIN{
     $table = Invoke-SqliteQuery -SQLiteConnection $conn -Query $query
 
     $recordcount = 0
-
 }
 
 PROCESS{
+
+    # get the header values
+    $header = @() #an array of the header values
+    for ($col = 1; $col -le $maxcol; $col++) {
+        $header += ,$theSheet.cells.item(1,$col).value2
+    }
+    Write-Verbose ("Header: {0}" -f ($header -join '|'))
+
     if ( ! $dbExists -or ! $table ) { #create database
 
-        $header = @() #an array of the header values
+        
         $createQuery = ("CREATE TABLE IF NOT EXISTS [{0}] (" -f $TableName)
         for ($col = 1; $col -le $maxcol; $col++) {
             if ($col -gt 1) {$createQuery += ","}
             $createQuery += $theSheet.cells.item(1,$col).value2
             $createQuery += " TEXT"
-            $header += ,$theSheet.cells.item(1,$col).value2
         }
 
         $createQuery += ")"
