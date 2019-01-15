@@ -75,17 +75,34 @@ param(
     [String]$TableName = $SheetName
   ) 
 
-BEGIN{    
+BEGIN{
+
+    $dbExists = (Test-Path $Database -PathType Leaf)    
     Write-Verbose ("Database file: `"{0}`" - Exists? {1}" -f $Database,$dbExists)
     Write-Verbose ("Excel file: `"{0}`"" -f $ExcelFile)
     Write-Verbose ("Sheet Name: `"{0}`"" -f $SheetName)
     Write-Verbose ("Table: `"{0}`"" -f $Tablename)
    
-    write-verbose "create object" 
+    Write-Verbose "create object" 
     $Excel = New-Object -ComObject Excel.Application
     
     write-verbose ("open workbook `"{0}`"" -f $ExcelFile)
     $Workbook = $Excel.Workbooks.Open($excelfile)
+
+    
+    $conn = New-SQLiteConnection -DataSource $Database
+
+    
+}
+
+PROCESS{
+
+<# TODO - if the worksheet isn't specified then loop through all worksheets
+    Make an array of worksheets either taking the parameter as that, or make an array of all worksheets
+    Loop through each sheet adding to a table by that name
+    
+    #>
+
 
     Write-Verbose ("Opening sheet `"{0}`"" -f $SheetName)
     $theSheet = $workbook.worksheets.item($SheetName)    
@@ -97,17 +114,12 @@ BEGIN{
     
     $values = @()
     $datatable = $null
-    $conn = New-SQLiteConnection -DataSource $Database
-    $dbExists = (Test-Path $Database -PathType Leaf)
 
     # See if the table exists in the database. If its not there it'll return null
     $query = ("SELECT * FROM sqlite_master where tbl_name LIKE `'{0}`'" -f $TableName)
     $table = Invoke-SqliteQuery -SQLiteConnection $conn -Query $query
 
     $recordcount = 0
-}
-
-PROCESS{
 
     # get the header values
     $header = @() #an array of the header values
